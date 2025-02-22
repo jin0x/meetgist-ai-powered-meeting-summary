@@ -1,4 +1,3 @@
-Here's the modified README.md without the cloning instructions:
 
 ````markdown
 # Audio Transcription with Speaker Detection
