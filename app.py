@@ -1,8 +1,8 @@
 import streamlit as st
 import json
 from pathlib import Path
-from datetime import datetime
-from src.transcriber import LemurTranscriber
+from src.audio_transcriber import AudioTranscriber
+from src.transcript_formatter import TranscriptFormatter
 from src.utils import save_uploaded_file, get_unique_filename
 from src.db import DatabaseManager
 from config import ASSEMBLYAI_API_KEY
@@ -25,7 +25,7 @@ if "current_tab" not in st.session_state:
     st.session_state.current_tab = "Instructions"
 
 if 'transcriber' not in st.session_state:
-    st.session_state.transcriber = LemurTranscriber(ASSEMBLYAI_API_KEY)
+    st.session_state.transcriber = AudioTranscriber(ASSEMBLYAI_API_KEY)
 
 # Initialize database manager in session state
 if 'db' not in st.session_state:
@@ -100,28 +100,29 @@ elif tab == "Transcript Management":
                     # Transcribe with file output
                     result = st.session_state.transcriber.transcribe(
                         audio_path=file_path,
+                        meeting_title=meeting_title,
                         output_path=output_path
                     )
 
                     # Save to database
-                    # saved_transcript = st.session_state.db.save_transcript(
-                    #     title=meeting_title,
-                    #     content=json.dumps(result),
-                    #     source_type='audio'
-                    # )
+                    saved_transcript = st.session_state.db.save_transcript(
+                        title=meeting_title,
+                        content=result["plain"],  # Use the plain text version for DB
+                        source_type=result["source_type"]
+                    )
 
-                    # if saved_transcript:
-                    if result:
+                    if saved_transcript:
                         st.success("✅ Transcription completed and saved to both database and file!")
 
                         with st.expander("Show Preview"):
                             st.subheader("Transcript Preview:")
-                            for segment in result["segments"][:3]:
-                                st.markdown(f"**{segment['speaker']}** ({segment['start']:.1f}s - {segment['end']:.1f}s):")
-                                st.markdown(f"> {segment['text']}")
+                            # Show first few lines of the formatted text
+                            preview_text = result["plain"].split("\n\n")[:3]
+                            for line in preview_text:
+                                st.markdown(f"> {line}")
 
                             st.info(f"""
-                            Note: Transcript saved in two locations:
+                            Transcript saved in two locations:
                             - Database (for application use)
                             - JSON file at: {output_path} (for backup/external use)
                             """)
