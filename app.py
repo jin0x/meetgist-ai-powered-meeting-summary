@@ -2,10 +2,10 @@ import streamlit as st
 import json
 from pathlib import Path
 from src.audio_transcriber import AudioTranscriber
-from src.transcript_formatter import TranscriptFormatter
+from src.meeting_summarizer import MeetingSummarizer
 from src.utils import save_uploaded_file, get_unique_filename
 from src.db import DatabaseManager
-from config import ASSEMBLYAI_API_KEY
+from config import ASSEMBLYAI_API_KEY, IBM_API_KEY, IBM_PROJECT_ID
 
 # Page configuration (MUST BE THE FIRST STREAMLIT COMMAND)
 st.set_page_config(page_title="Meeting Summary & Decision Tracker", layout="wide")
@@ -30,6 +30,14 @@ if 'transcriber' not in st.session_state:
 # Initialize database manager in session state
 if 'db' not in st.session_state:
     st.session_state.db = DatabaseManager()
+
+# Initialize summarizer in session state if not exists
+if 'summarizer' not in st.session_state:
+    st.session_state.summarizer = MeetingSummarizer(
+        api_key=IBM_API_KEY,
+        project_id=IBM_PROJECT_ID,
+        space_id=None
+    )
 
 # Sidebar for navigation
 st.sidebar.title("Navigation")
@@ -193,6 +201,7 @@ elif tab == "Transcript Management":
         st.info("No transcripts available yet. Upload an audio file or text to get started!")
 
 # Generate Summary Tab
+# Generate Summary Tab
 elif tab == "Generate Summary":
     st.session_state.current_tab = "Generate Summary"
     st.title("Generate Summary")
@@ -216,60 +225,83 @@ elif tab == "Generate Summary":
         existing_summary = st.session_state.db.get_summary_by_transcript_id(selected_id)
 
         if existing_summary:
-            st.success("Summary already exists!")
+            st.success("Summary exists!")
 
             st.header("Meeting Summary")
             st.write(existing_summary["summary_text"])
 
             if existing_summary["key_decisions"]:
                 st.header("Key Decisions")
-                st.write(existing_summary["key_decisions"])
+                for decision in existing_summary["key_decisions"]:
+                    st.markdown(f"- {decision}")
 
             if existing_summary["action_items"]:
                 st.header("Action Items")
-                st.write(existing_summary["action_items"])
+                for action in existing_summary["action_items"]:
+                    st.markdown(f"- {action}")
 
             # Option to regenerate
             if st.button("Regenerate Summary"):
-                st.info("Summary regeneration will be implemented in future updates.")
+                with st.spinner("Regenerating summary..."):
+                    try:
+                        # Get transcript content
+                        transcript = st.session_state.db.get_transcript_by_id(selected_id)
+                        if not transcript:
+                            st.error("Failed to retrieve transcript.")
+                            st.stop()
+
+                        # Generate new summary
+                        summary_result = st.session_state.summarizer.generate_summary(
+                            transcript_data=transcript["content"],
+                            transcript_id=selected_id
+                        )
+
+                        # Save to database
+                        updated_summary = st.session_state.db.save_summary(
+                            transcript_id=selected_id,
+                            summary_text=summary_result["summary_text"],
+                            key_decisions=summary_result["key_decisions"],
+                            action_items=summary_result["action_items"]
+                        )
+
+                        if updated_summary:
+                            st.success("Summary regenerated successfully!")
+                            st.rerun()
+                        else:
+                            st.error("Failed to save regenerated summary.")
+
+                    except Exception as e:
+                        st.error(f"Failed to regenerate summary: {str(e)}")
 
         elif st.button("Generate Summary"):
             with st.spinner("Generating summary..."):
-                # Get full transcript
-                transcript = st.session_state.db.get_transcript_by_id(selected_id)
-                if transcript:
-                    try:
-                        transcript_content = json.loads(transcript["content"])
-                        # Extract full text for summary generation
-                        full_text = transcript_content["text"] if "text" in transcript_content else transcript_content
+                try:
+                    # Get transcript
+                    transcript = st.session_state.db.get_transcript_by_id(selected_id)
+                    if not transcript:
+                        st.error("Failed to retrieve transcript.")
+                        st.stop()
 
-                        # TODO: Implement actual summary generation
-                        # For now, just save a placeholder summary
-                        summary = st.session_state.db.save_summary(
-                            transcript_id=selected_id,
-                            summary_text=f"Summary will be implemented soon. Full text: {full_text[:100]}...",
-                            key_decisions="Key decisions will be extracted in future updates.",
-                            action_items="Action items will be extracted in future updates."
-                        )
+                    # Generate summary
+                    summary_result = st.session_state.summarizer.generate_summary(
+                        transcript_data=transcript["content"],
+                        transcript_id=selected_id
+                    )
 
-                        if summary:
-                            st.success("Summary generated and saved!")
-                            st.rerun()  # Refresh to show the new summary
-                        else:
-                            st.error("Failed to save summary.")
-                    except json.JSONDecodeError:
-                        # Handle plain text transcripts
-                        summary = st.session_state.db.save_summary(
-                            transcript_id=selected_id,
-                            summary_text=f"Summary will be implemented soon. Preview: {transcript['content'][:100]}...",
-                            key_decisions="Key decisions will be extracted in future updates.",
-                            action_items="Action items will be extracted in future updates."
-                        )
+                    # Save to database
+                    saved_summary = st.session_state.db.save_summary(
+                        transcript_id=selected_id,
+                        summary_text=summary_result["summary_text"],
+                        key_decisions=summary_result["key_decisions"],
+                        action_items=summary_result["action_items"]
+                    )
 
-                        if summary:
-                            st.success("Summary generated and saved!")
-                            st.rerun()
-                        else:
-                            st.error("Failed to save summary.")
-                else:
-                    st.error("Failed to retrieve transcript from database.")
+                    if saved_summary:
+                        st.success("Summary generated and saved!")
+                        st.rerun()
+                    else:
+                        st.error("Failed to save summary.")
+
+                except Exception as e:
+                    st.error(f"Failed to generate summary: {str(e)}")
+                    print(f"Error details: {str(e)}")
