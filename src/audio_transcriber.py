@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Dict, Any
 import assemblyai as aai
 
-class LemurTranscriber:
+class AudioTranscriber:
     def __init__(self, assemblyai_key: str):
         if not assemblyai_key:
             raise ValueError("AssemblyAI API key is missing!")

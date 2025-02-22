@@ -1,8 +1,8 @@
 import streamlit as st
 import json
 from pathlib import Path
-from datetime import datetime
-from src.transcriber import LemurTranscriber
+from src.audio_transcriber import AudioTranscriber
+from src.transcript_formatter import TranscriptFormatter
 from src.utils import save_uploaded_file, get_unique_filename
 from src.db import DatabaseManager
 from config import ASSEMBLYAI_API_KEY
@@ -25,7 +25,7 @@ if "current_tab" not in st.session_state:
     st.session_state.current_tab = "Instructions"
 
 if 'transcriber' not in st.session_state:
-    st.session_state.transcriber = LemurTranscriber(ASSEMBLYAI_API_KEY)
+    st.session_state.transcriber = AudioTranscriber(ASSEMBLYAI_API_KEY)
 
 # Initialize database manager in session state
 if 'db' not in st.session_state:
