@@ -4,23 +4,22 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any
 import assemblyai as aai
-from pydub import AudioSegment
 
 class LemurTranscriber:
     def __init__(self, assemblyai_key: str):
         if not assemblyai_key:
             raise ValueError("AssemblyAI API key is missing!")
-        
+
         # Configure AssemblyAI
         aai.settings.api_key = assemblyai_key
-        
+
         # Configure transcription settings
         self.config = aai.TranscriptionConfig(
             speech_model=aai.SpeechModel.best,
             speaker_labels=True,
             language_detection=True
         )
-        
+
         self.transcriber = aai.Transcriber(config=self.config)
 
     def transcribe(self, audio_path: str, output_path: str = None) -> Dict[str, Any]:
