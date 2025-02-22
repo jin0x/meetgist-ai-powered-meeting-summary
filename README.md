@@ -1,22 +1,19 @@
-
-````markdown
 # Audio Transcription with Speaker Detection
 
-A Python-based tool that combines OpenAI's Whisper and AssemblyAI for accurate audio transcription with speaker detection. The tool processes audio files in parallel, providing both transcription and speaker identification.
+A Python-based tool that uses AssemblyAI's Lemur for accurate audio transcription with speaker detection. The tool provides high-quality transcription and speaker identification using AssemblyAI's advanced AI models.
 
 ## Features
 
-- Multi-speaker detection
-- Parallel processing for faster transcription
-- Support for long audio files through chunking
-- High-accuracy transcription using OpenAI's Whisper
-- Speaker diarization using AssemblyAI
+- Multi-speaker detection and diarization
+- High-accuracy transcription using AssemblyAI's Lemur
+- Automatic language detection
 - Detailed output with timestamps and speaker labels
+- Simple and efficient processing
+- No audio chunking needed - handles files of any length
 
 ## Requirements
 
 - Python 3.8+
-- OpenAI API key
 - AssemblyAI API key
 
 ## Installation
@@ -28,22 +25,21 @@ uv venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 uv pip install -r requirements.txt
 ```
-````
 
 ## Configuration
 
 1. Create a `.env` file in the root directory
-2. Add your API keys:
+2. Add your API key:
 
-```python
-OPENAI_API_KEY = "your-openai-api-key"
-ASSEMBLYAI_API_KEY = "your-assemblyai-api-key"
+```plaintext
+ASSEMBLYAI_API_KEY=your-assemblyai-api-key
 ```
 
 ## Usage
 
 1. Place your audio file in the project directory
-2. Run the transcription:
+2. Update the audio file path in run.py
+3. Run the transcription:
 
 ```bash
 python run.py
@@ -51,9 +47,9 @@ python run.py
 
 The script will:
 
-- Split the audio into manageable chunks
-- Process transcription and speaker detection in parallel
-- Combine results into a single output file
+- Upload your audio file to AssemblyAI
+- Process the transcription with speaker detection
+- Save the results to a JSON file
 
 ## Output Format
 
@@ -61,45 +57,48 @@ The tool generates a JSON file containing:
 
 ```json
 {
-    "metadata": {
-        "processed_at": "timestamp",
-        "filename": "input_file.mp3",
-        "processing_time": "duration in seconds",
-        "total_speakers": "number of speakers detected"
-    },
-    "segments": [
-        {
-            "text": "transcribed text",
-            "start": start_time,
-            "end": end_time,
-            "speaker": "Speaker 1",
-            "confidence": confidence_score
-        }
-        // ... more segments
-    ],
-    "text": "full transcript with speaker labels"
+  "metadata": {
+    "processed_at": "timestamp",
+    "filename": "input_file.mp3",
+    "total_speakers": "number of speakers detected"
+  },
+  "segments": [
+    {
+      "text": "transcribed text",
+      "start": "start_time in seconds",
+      "end": "end_time in seconds",
+      "speaker": "Speaker A"
+    }
+  ],
+  "text": "full transcript with speaker labels"
 }
 ```
 
 ## Performance
 
-- Processes audio files in parallel for improved speed
-- Handles files of any length through efficient chunking
-- Maintains speaker consistency across chunks
-- Optimizes audio for better speaker detection
+- Efficient processing using AssemblyAI's cloud infrastructure
+- No local processing required
+- Handles files of any length
+- Maintains consistent speaker labels throughout the transcript
 
 ## Limitations
 
 - Requires clear audio with minimal background noise
 - Best results when speakers have distinct voices
-- Each speaker should have at least 30 seconds of speech
-- Maximum of 10 speakers per audio file
+- Each speaker should have sufficient speech samples
+- Internet connection required for processing
+
+## Supported Audio Formats
+
+- MP3
+- MP4
+- WAV
+- FLAC
+- And many more common audio formats
 
 ## Acknowledgments
 
-- [OpenAI Whisper](https://openai.com/research/whisper) for transcription
-- [AssemblyAI](https://www.assemblyai.com/) for speaker detection
-- [pydub](https://github.com/jiaaro/pydub) for audio processing
+- [AssemblyAI](https://www.assemblyai.com/) for transcription and speaker detection
 
 ## Support
 
