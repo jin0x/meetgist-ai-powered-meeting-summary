@@ -1,6 +1,7 @@
 import streamlit as st
 from pathlib import Path
 from datetime import datetime
+from src.db import DatabaseManager
 from src.transcriber import LemurTranscriber
 from src.utils import save_uploaded_file, get_unique_filename
 from config import ASSEMBLYAI_API_KEY
@@ -27,6 +28,10 @@ if 'transcriber' not in st.session_state:
 
 if 'transcripts' not in st.session_state:
     st.session_state.transcripts = []
+
+# Initialize database manager in session state
+if 'db' not in st.session_state:
+    st.session_state.db = DatabaseManager()
 
 # Sidebar for navigation
 st.sidebar.title("Navigation")
