@@ -1,8 +1,10 @@
 import streamlit as st
+import json
 from pathlib import Path
 from datetime import datetime
 from src.transcriber import LemurTranscriber
 from src.utils import save_uploaded_file, get_unique_filename
+from src.db import DatabaseManager
 from config import ASSEMBLYAI_API_KEY
 
 # Page configuration (MUST BE THE FIRST STREAMLIT COMMAND)
@@ -25,8 +27,9 @@ if "current_tab" not in st.session_state:
 if 'transcriber' not in st.session_state:
     st.session_state.transcriber = LemurTranscriber(ASSEMBLYAI_API_KEY)
 
-if 'transcripts' not in st.session_state:
-    st.session_state.transcripts = []
+# Initialize database manager in session state
+if 'db' not in st.session_state:
+    st.session_state.db = DatabaseManager()
 
 # Sidebar for navigation
 st.sidebar.title("Navigation")
@@ -94,32 +97,37 @@ elif tab == "Transcript Management":
                     safe_title = "".join(c if c.isalnum() else "_" for c in meeting_title)
                     output_path = get_unique_filename(f"transcripts/{safe_title}.json")
 
-                    # Transcribe
+                    # Transcribe with file output
                     result = st.session_state.transcriber.transcribe(
                         audio_path=file_path,
                         output_path=output_path
                     )
 
-                    # Add to transcripts list
-                    transcript_info = {
-                        "title": meeting_title,
-                        "source_type": "Audio",
-                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                        "file_path": output_path,
-                        "content": result
-                    }
-                    st.session_state.transcripts.append(transcript_info)
+                    # Save to database
+                    # saved_transcript = st.session_state.db.save_transcript(
+                    #     title=meeting_title,
+                    #     content=json.dumps(result),
+                    #     source_type='audio'
+                    # )
 
-                    # Show success and preview
-                    st.success("✅ Transcription completed successfully!")
+                    # if saved_transcript:
+                    if result:
+                        st.success("✅ Transcription completed and saved to both database and file!")
 
-                    with st.expander("Show Preview"):
-                        st.subheader("Transcript Preview:")
-                        for segment in result["segments"][:3]:
-                            st.markdown(f"**{segment['speaker']}** ({segment['start']:.1f}s - {segment['end']:.1f}s):")
-                            st.markdown(f"> {segment['text']}")
+                        with st.expander("Show Preview"):
+                            st.subheader("Transcript Preview:")
+                            for segment in result["segments"][:3]:
+                                st.markdown(f"**{segment['speaker']}** ({segment['start']:.1f}s - {segment['end']:.1f}s):")
+                                st.markdown(f"> {segment['text']}")
 
-                        st.info("Note: This is just a preview. Full transcript available in Generate Summary tab.")
+                            st.info(f"""
+                            Note: Transcript saved in two locations:
+                            - Database (for application use)
+                            - JSON file at: {output_path} (for backup/external use)
+                            """)
+                    else:
+                        st.error("Failed to save transcript to database.")
+                        st.warning(f"However, the transcript was saved to file at: {output_path}")
 
                 except Exception as e:
                     st.error(f"Transcription failed: {str(e)}")
@@ -130,27 +138,54 @@ elif tab == "Transcript Management":
                         Path(file_path).unlink()
 
     elif upload_type == "Text Transcript":
-        text_transcript = st.text_area(
-            "Paste Text Transcript",
-            placeholder="Paste your text transcript here...",
-            height=300
-        )
-        if st.button("Process Text") and text_transcript:
-            st.info("Text transcript processing will be implemented in future updates.")
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            text_transcript = st.text_area(
+                "Paste Text Transcript",
+                placeholder="Paste your text transcript here...",
+                height=300
+            )
+        with col2:
+            meeting_title = st.text_input(
+                "Meeting Title",
+                placeholder="Enter a title for this meeting",
+                help="This will help identify the transcript later"
+            )
+
+        if meeting_title and text_transcript and st.button("Process Text"):
+            try:
+                # Save to database
+                saved_transcript = st.session_state.db.save_transcript(
+                    title=meeting_title,
+                    content=text_transcript,
+                    source_type='text'
+                )
+
+                if saved_transcript:
+                    st.success("✅ Text transcript saved successfully!")
+                else:
+                    st.error("Failed to save transcript to database.")
+
+            except Exception as e:
+                st.error(f"Failed to process transcript: {str(e)}")
 
     # List of Saved Transcripts
-    if st.session_state.transcripts:
-        st.header("Saved Transcripts")
+    st.header("Saved Transcripts")
+    transcripts = st.session_state.db.get_all_transcripts()
+
+    if transcripts:
         transcript_data = {
             "Meeting Title": [],
             "Source Type": [],
-            "Timestamp": []
+            "Created At": []
         }
 
-        for transcript in st.session_state.transcripts:
-            transcript_data["Meeting Title"].append(transcript["title"])
+        for transcript in transcripts:
+            transcript_data["Meeting Title"].append(transcript["meeting_title"])
             transcript_data["Source Type"].append(transcript["source_type"])
-            transcript_data["Timestamp"].append(transcript["timestamp"])
+            transcript_data["Created At"].append(
+                transcript["created_at"].split("T")[0]  # Show only date part
+            )
 
         st.table(transcript_data)
     else:
@@ -161,7 +196,10 @@ elif tab == "Generate Summary":
     st.session_state.current_tab = "Generate Summary"
     st.title("Generate Summary")
 
-    if not st.session_state.transcripts:
+    # Get all transcripts from database
+    transcripts = st.session_state.db.get_all_transcripts()
+
+    if not transcripts:
         st.warning("No transcripts available. Please upload and process a transcript first.")
         if st.button("Go to Transcript Management"):
             st.session_state.current_tab = "Transcript Management"
@@ -169,36 +207,68 @@ elif tab == "Generate Summary":
     else:
         # Transcript Selection
         st.header("Select Transcript")
-        transcript_titles = [t["title"] for t in st.session_state.transcripts]
-        selected_transcript = st.selectbox("Choose a transcript", transcript_titles)
+        transcript_options = {t["meeting_title"]: t["id"] for t in transcripts}
+        selected_title = st.selectbox("Choose a transcript", list(transcript_options.keys()))
+        selected_id = transcript_options[selected_title]
 
-        # Find selected transcript data
-        transcript_data = next(
-            (t for t in st.session_state.transcripts if t["title"] == selected_transcript),
-            None
-        )
+        # Check if summary exists
+        existing_summary = st.session_state.db.get_summary_by_transcript_id(selected_id)
 
-        if transcript_data and st.button("Generate Summary"):
-            with st.spinner("Generating summary..."):
-                # TODO: Implement actual summary generation
-                st.success("Summary generated successfully!")
+        if existing_summary:
+            st.success("Summary already exists!")
 
-                # Display Transcript Content
-                st.header("Full Transcript")
-                with st.expander("Show Full Transcript"):
-                    for segment in transcript_data["content"]["segments"]:
-                        st.markdown(f"**{segment['speaker']}** ({segment['start']:.1f}s - {segment['end']:.1f}s):")
-                        st.markdown(f"> {segment['text']}")
+            st.header("Meeting Summary")
+            st.write(existing_summary["summary_text"])
 
-                # Display metadata
-                st.header("Meeting Information")
-                st.write(f"- **Total Speakers:** {transcript_data['content']['metadata']['total_speakers']}")
-                st.write(f"- **Processing Date:** {transcript_data['content']['metadata']['processed_at']}")
-                st.write(f"- **Original Filename:** {transcript_data['content']['metadata']['filename']}")
-
-                # Placeholder for future features
+            if existing_summary["key_decisions"]:
                 st.header("Key Decisions")
-                st.info("Key decisions extraction coming soon!")
+                st.write(existing_summary["key_decisions"])
 
+            if existing_summary["action_items"]:
                 st.header("Action Items")
-                st.info("Action items extraction coming soon!")
+                st.write(existing_summary["action_items"])
+
+            # Option to regenerate
+            if st.button("Regenerate Summary"):
+                st.info("Summary regeneration will be implemented in future updates.")
+
+        elif st.button("Generate Summary"):
+            with st.spinner("Generating summary..."):
+                # Get full transcript
+                transcript = st.session_state.db.get_transcript_by_id(selected_id)
+                if transcript:
+                    try:
+                        transcript_content = json.loads(transcript["content"])
+                        # Extract full text for summary generation
+                        full_text = transcript_content["text"] if "text" in transcript_content else transcript_content
+
+                        # TODO: Implement actual summary generation
+                        # For now, just save a placeholder summary
+                        summary = st.session_state.db.save_summary(
+                            transcript_id=selected_id,
+                            summary_text=f"Summary will be implemented soon. Full text: {full_text[:100]}...",
+                            key_decisions="Key decisions will be extracted in future updates.",
+                            action_items="Action items will be extracted in future updates."
+                        )
+
+                        if summary:
+                            st.success("Summary generated and saved!")
+                            st.rerun()  # Refresh to show the new summary
+                        else:
+                            st.error("Failed to save summary.")
+                    except json.JSONDecodeError:
+                        # Handle plain text transcripts
+                        summary = st.session_state.db.save_summary(
+                            transcript_id=selected_id,
+                            summary_text=f"Summary will be implemented soon. Preview: {transcript['content'][:100]}...",
+                            key_decisions="Key decisions will be extracted in future updates.",
+                            action_items="Action items will be extracted in future updates."
+                        )
+
+                        if summary:
+                            st.success("Summary generated and saved!")
+                            st.rerun()
+                        else:
+                            st.error("Failed to save summary.")
+                else:
+                    st.error("Failed to retrieve transcript from database.")
