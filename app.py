@@ -100,28 +100,29 @@ elif tab == "Transcript Management":
                     # Transcribe with file output
                     result = st.session_state.transcriber.transcribe(
                         audio_path=file_path,
+                        meeting_title=meeting_title,
                         output_path=output_path
                     )
 
                     # Save to database
-                    # saved_transcript = st.session_state.db.save_transcript(
-                    #     title=meeting_title,
-                    #     content=json.dumps(result),
-                    #     source_type='audio'
-                    # )
+                    saved_transcript = st.session_state.db.save_transcript(
+                        title=meeting_title,
+                        content=result["plain"],  # Use the plain text version for DB
+                        source_type=result["source_type"]
+                    )
 
-                    # if saved_transcript:
-                    if result:
+                    if saved_transcript:
                         st.success("✅ Transcription completed and saved to both database and file!")
 
                         with st.expander("Show Preview"):
                             st.subheader("Transcript Preview:")
-                            for segment in result["segments"][:3]:
-                                st.markdown(f"**{segment['speaker']}** ({segment['start']:.1f}s - {segment['end']:.1f}s):")
-                                st.markdown(f"> {segment['text']}")
+                            # Show first few lines of the formatted text
+                            preview_text = result["plain"].split("\n\n")[:3]
+                            for line in preview_text:
+                                st.markdown(f"> {line}")
 
                             st.info(f"""
-                            Note: Transcript saved in two locations:
+                            Transcript saved in two locations:
                             - Database (for application use)
                             - JSON file at: {output_path} (for backup/external use)
                             """)

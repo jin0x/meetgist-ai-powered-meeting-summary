@@ -2,8 +2,9 @@ import os
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import assemblyai as aai
+from .transcript_formatter import TranscriptFormatter
 
 class AudioTranscriber:
     def __init__(self, assemblyai_key: str):
@@ -21,9 +22,25 @@ class AudioTranscriber:
         )
 
         self.transcriber = aai.Transcriber(config=self.config)
+        self.formatter = TranscriptFormatter()
 
-    def transcribe(self, audio_path: str, output_path: str = None) -> Dict[str, Any]:
-        """Transcribe audio file using Lemur"""
+    def transcribe(
+        self,
+        audio_path: str,
+        meeting_title: str,
+        output_path: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Transcribe audio file and return formatted result.
+
+        Args:
+            audio_path: Path to audio file
+            meeting_title: Title of the meeting
+            output_path: Optional path to save JSON output
+
+        Returns:
+            Dictionary containing formatted transcript and metadata
+        """
         try:
             if not os.path.exists(audio_path):
                 raise FileNotFoundError(f"Audio file not found: {audio_path}")
@@ -34,13 +51,8 @@ class AudioTranscriber:
             if transcript.status == aai.TranscriptStatus.error:
                 raise Exception(f"Transcription failed: {transcript.error}")
 
-            # Format the result
-            result = {
-                "metadata": {
-                    "processed_at": datetime.now().isoformat(),
-                    "filename": Path(audio_path).name,
-                    "total_speakers": len(set(u.speaker for u in transcript.utterances))
-                },
+            # Convert AssemblyAI transcript to our format
+            raw_result = {
                 "segments": [
                     {
                         "text": u.text,
@@ -53,12 +65,34 @@ class AudioTranscriber:
                 "text": transcript.text
             }
 
+            # Format the transcript
+            # Get both structured (for file) and plain (for DB) versions
+            formatted_structured = self.formatter.format_transcript(
+                content=raw_result,
+                source_type='audio',
+                structured=True,
+                meeting_title=meeting_title
+            )
+
+            formatted_plain = self.formatter.format_transcript(
+                content=raw_result,
+                source_type='audio',
+                structured=False
+            )
+
+            # Save to file if output path provided
             if output_path:
+                os.makedirs(os.path.dirname(output_path), exist_ok=True)
                 with open(output_path, "w", encoding="utf-8") as f:
-                    json.dump(result, f, indent=2, ensure_ascii=False)
+                    json.dump(formatted_structured, f, indent=2, ensure_ascii=False)
                 print(f"\nTranscript saved to {output_path}")
 
-            return result
+            # Return both formats for database storage and further use
+            return {
+                "structured": formatted_structured,
+                "plain": formatted_plain,
+                "source_type": "audio"
+            }
 
         except Exception as e:
             print(f"\nError in transcription: {str(e)}")
