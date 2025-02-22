@@ -1,7 +1,6 @@
 # Core dependencies
-openai>=1.0.0
 python-dotenv>=1.0.0
-
+requests>=2.31.0
 # Audio processing
 pydub>=0.25.1
 ffmpeg-python>=0.2.0
@@ -14,4 +13,7 @@ numpy>=1.26.0
 
 # Fast downloads
 hf_transfer>=0.1.3
-requests>=2.31.0 
+requests>=2.31.0
+
+# AssemblyAI
+assemblyai>=0.17.0 

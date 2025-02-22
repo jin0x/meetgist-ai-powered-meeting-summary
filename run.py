@@ -1,15 +1,15 @@
 import os
-from src.transcriber import AudioTranscriber
-from config import OPENAI_API_KEY, ASSEMBLYAI_API_KEY
+from src.transcriber import LemurTranscriber
+from config import ASSEMBLYAI_API_KEY
 
 def main():
     print("Starting transcription process...")
     
     # Initialize the transcriber
-    transcriber = AudioTranscriber(OPENAI_API_KEY, ASSEMBLYAI_API_KEY)
+    transcriber = LemurTranscriber(ASSEMBLYAI_API_KEY)
     
     # Audio file path
-    audio_file_path = r"Your\audio\file.mp3"  # Update this path
+    audio_file_path = "D:\\02-consolidated.wav"  # Update this path
     print(f"Processing audio file: {audio_file_path}")
     
     try:
