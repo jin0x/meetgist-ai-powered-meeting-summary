@@ -1,50 +1,39 @@
-# Virtual Environment
-.venv/
-venv/
-ENV/
+# See https://help.github.com/ignore-files/ for more about ignoring files.
 
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Environment variables
-.env
-
-# Audio files and transcripts
-*.wav
-*.mp3
-*.json
-chunk_*.wav
-
-# Cache and temp files
-models_cache/
-.cache/
-temp/
-*.pyc
-
-# IDE specific files
-.idea/
-.vscode/
-*.swp
-*.swo
 .DS_Store
 
-# Logs
-*.log 
+# Python cache
+.mypy_cache
+*__pycache__*
+*.egg-info
+*.pyc
+*.pytest_cache
+*.ruff_cache
+*.cache*
+*.config*
+
+# Machine specific
+.idea
+.vscode
+tmp
+
+# Ignore .env files
+.env
+.envrc
+
+# ignore storage dir
+storage
+
+# ignore .local dir
+.local
+
+# ignore dist dir
+dist
+
+# ignore common virtualenvs
+.venv
+venv*
+aienv*
+llmenv*
+
+.ipynb_checkpoints
