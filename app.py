@@ -252,7 +252,7 @@ elif tab == "Generate Summary":
 
                         # Generate new summary
                         summary_result = st.session_state.summarizer.generate_summary(
-                            transcript_data=json.loads(transcript["content"]),
+                            transcript_data=transcript["content"],
                             transcript_id=selected_id
                         )
 

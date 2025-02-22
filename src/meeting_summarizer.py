@@ -67,9 +67,6 @@ class MeetingSummarizer:
                 'action_items': actions_list
             }
 
-            print("\nGenerated Summary:")
-            print(json.dumps(summary, indent=2))
-
             return summary
 
         except Exception as e:
