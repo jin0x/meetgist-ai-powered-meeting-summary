@@ -22,17 +22,20 @@ class SlackEvent(BaseModel):
     """Main event wrapper"""
     token: str
     team_id: str
-    event: SlackMentionEvent
+    api_app_id: str
+    event: Dict[str, Any]  # Made more flexible to handle different event types
+    type: str
     event_id: str
     event_time: int
-
-class SlackResponseBlock(BaseModel):
-    """Model for Slack block response"""
-    type: str
-    text: Dict[str, str]
+    authorizations: Optional[List[Dict[str, Any]]] = None
+    is_ext_shared_channel: Optional[bool] = None
+    event_context: Optional[str] = None
 
 class SlackResponse(BaseModel):
     """Model for Slack message response"""
     channel: str
     blocks: Optional[List[Dict[str, Any]]] = None
     text: Optional[str] = None
+
+    class Config:
+        extra = "allow"  # Allow additional fields
