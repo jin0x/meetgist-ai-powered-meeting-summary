@@ -64,7 +64,7 @@ Our project is built with modern technologies:
 - **Database:** Supabase for secure data storage
 - **AI Services:**
   - AssemblyAI for speech-to-text
-  - IBM Watson for summarization
+  - IBM Granite for summarization
   - IBM Granite for synthetic meeting generation
 - **Integration:** Slack API for team collaboration
 - **Development:** Python, JavaScript
@@ -86,7 +86,7 @@ Our project is built with modern technologies:
 
 - **Core Services:**
   - Transcription service using AssemblyAI
-  - Summarization service using IBM Watson
+  - Summarization service using IBM Granite
   - Synthetic meeting generation using IBM Granite
   - Database management with Supabase
   - Slack bot for notifications and commands
