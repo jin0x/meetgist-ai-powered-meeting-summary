@@ -18,6 +18,12 @@ class SlackNotifier:
         }
         self.base_url = "https://slack.com/api/chat.postMessage"
 
+        # Define colors for different sections
+        self.colors = {
+            "decisions": "#0088cc",  # Blue
+            "actions": "#800080"     # Purple
+        }
+
     def send_meeting_summary(
         self,
         meeting_title: str,
@@ -25,33 +31,19 @@ class SlackNotifier:
         timestamp: Optional[str] = None
     ) -> bool:
         """
-        Send meeting summary to Slack channel.
-
-        Args:
-            meeting_title: Title of the meeting
-            summary_data: Dictionary containing summary, decisions, and action items
-            timestamp: Optional timestamp (defaults to current time)
-
-        Returns:
-            bool: True if notification was sent successfully
+        Send meeting summary to Slack channel with enhanced formatting.
         """
         try:
-            # Use current time if no timestamp provided
             if not timestamp:
                 timestamp = datetime.now().isoformat()
 
-            # Extract data from summary
             summary = summary_data.get('summary_text', 'No summary available')
             decisions = summary_data.get('key_decisions', [])
             actions = summary_data.get('action_items', [])
 
-            # Format decisions and actions for display
-            decisions_text = self._format_list(decisions, "- ")
-            actions_text = self._format_list(actions, "- ")
-
+            # Create the message payload with mixed blocks and attachments
             payload = {
                 "channel": self.channel,
-                "text": "*New Meeting Summary Generated*",
                 "blocks": [
                     {
                         "type": "header",
@@ -80,27 +72,30 @@ class SlackNotifier:
                             "text": f"*Summary*\n{summary}"
                         }
                     }
-                ]
+                ],
+                "attachments": []
             }
 
-            # Add decisions if available
-            if decisions_text:
-                payload["blocks"].append({
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"*Key Decisions*\n{decisions_text}"
-                    }
+            # Add colored decisions section if available
+            if decisions:
+                payload["attachments"].append({
+                    "color": self.colors["decisions"],
+                    "fields": [{
+                        "title": "Key Decisions",
+                        "value": self._format_list(decisions),
+                        "short": False
+                    }]
                 })
 
-            # Add action items if available
-            if actions_text:
-                payload["blocks"].append({
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"*Action Items*\n{actions_text}"
-                    }
+            # Add colored actions section if available
+            if actions:
+                payload["attachments"].append({
+                    "color": self.colors["actions"],
+                    "fields": [{
+                        "title": "Action Items",
+                        "value": self._format_list(actions),
+                        "short": False
+                    }]
                 })
 
             response = requests.post(
@@ -124,7 +119,7 @@ class SlackNotifier:
             print(f"Error sending Slack notification: {str(e)}")
             return False
 
-    def _format_list(self, items: List[str], prefix: str = "- ") -> str:
+    def _format_list(self, items: List[str], prefix: str = "• ") -> str:
         """Format a list of items for Slack display."""
         if not items:
             return "None"
