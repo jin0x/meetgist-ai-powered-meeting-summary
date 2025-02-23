@@ -1,7 +1,11 @@
-from fastapi import APIRouter, HTTPException, Header, Request
-from ..models.slack import SlackEvent, SlackChallenge
-from ..services.query import QueryService
-from typing import Union, Optional
+from fastapi import APIRouter, HTTPException, Header, Request, Depends
+from ..models.slack import (
+    SlackEvent,
+    SlackChallenge,
+    SlackResponse
+)
+from ..services.query import QueryService, get_query_service
+from typing import Union, Dict, Any
 import hmac
 import hashlib
 import os
@@ -10,7 +14,11 @@ from datetime import datetime
 router = APIRouter()
 SLACK_SIGNING_SECRET = os.getenv("SLACK_SIGNING_SECRET")
 
-async def verify_slack_request(request: Request, x_slack_signature: str = Header(...), x_slack_timestamp: str = Header(...)) -> bool:
+async def verify_slack_request(
+    request: Request,
+    x_slack_signature: str = Header(...),
+    x_slack_timestamp: str = Header(...)
+) -> bool:
     """Verify that the request came from Slack"""
     if not SLACK_SIGNING_SECRET:
         raise HTTPException(status_code=500, detail="Slack signing secret not configured")
@@ -18,7 +26,6 @@ async def verify_slack_request(request: Request, x_slack_signature: str = Header
     body = await request.body()
     base_string = f"v0:{x_slack_timestamp}:{body.decode()}"
 
-    # Create signature
     my_signature = 'v0=' + hmac.new(
         SLACK_SIGNING_SECRET.encode(),
         base_string.encode(),
@@ -30,12 +37,12 @@ async def verify_slack_request(request: Request, x_slack_signature: str = Header
 
     return True
 
-@router.post("/events")
+@router.post("/events", response_model=Union[Dict[str, str], SlackResponse])
 async def slack_events(
     request: Request,
     event: Union[SlackEvent, SlackChallenge],
-    query_service: QueryService = QueryService()
-) -> dict:
+    query_service: QueryService = Depends(get_query_service)
+) -> Union[Dict[str, str], SlackResponse]:
     """Handle Slack events"""
     # Verify request first
     await verify_slack_request(request)
@@ -55,20 +62,20 @@ async def slack_events(
 
         except Exception as e:
             print(f"Error processing command: {e}")
-            return {
-                "channel": event.event.channel,
-                "text": "❌ Sorry, I encountered an error processing your request."
-            }
+            return SlackResponse(
+                channel=event.event.channel,
+                text="❌ Sorry, I encountered an error processing your request."
+            )
 
     return {"status": "ok"}
 
-def format_summaries_response(summaries: list, channel: str) -> dict:
+def format_summaries_response(summaries: list, channel: str) -> SlackResponse:
     """Format summaries list for Slack response"""
     if not summaries:
-        return {
-            "channel": channel,
-            "text": "No summaries found."
-        }
+        return SlackResponse(
+            channel=channel,
+            text="No summaries found."
+        )
 
     blocks = [
         {
@@ -82,7 +89,7 @@ def format_summaries_response(summaries: list, channel: str) -> dict:
     ]
 
     for summary in summaries:
-        created_at = datetime.fromisoformat(summary['created_at']).strftime("%Y-%m-%d")
+        created_at = datetime.fromisoformat(summary['created_at']).strftime("%Y-%m-%-d")
         blocks.append({
             "type": "section",
             "text": {
@@ -91,7 +98,7 @@ def format_summaries_response(summaries: list, channel: str) -> dict:
             }
         })
 
-    return {
-        "channel": channel,
-        "blocks": blocks
-    }
+    return SlackResponse(
+        channel=channel,
+        blocks=blocks
+    )

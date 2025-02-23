@@ -1,5 +1,6 @@
 from typing import List, Dict, Any
 from ...core.db import DatabaseManager
+from fastapi import Depends
 
 class QueryService:
     def __init__(self):
@@ -26,3 +27,7 @@ class QueryService:
         except Exception as e:
             print(f"Error fetching meetings: {e}")
             return []
+
+def get_query_service() -> QueryService:
+    """Dependency injection for QueryService"""
+    return QueryService()

@@ -1,6 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List
-from datetime import datetime
+from typing import Optional, List, Dict, Any
 
 class SlackEventBase(BaseModel):
     """Base model for Slack events"""
@@ -26,3 +25,14 @@ class SlackEvent(BaseModel):
     event: SlackMentionEvent
     event_id: str
     event_time: int
+
+class SlackResponseBlock(BaseModel):
+    """Model for Slack block response"""
+    type: str
+    text: Dict[str, str]
+
+class SlackResponse(BaseModel):
+    """Model for Slack message response"""
+    channel: str
+    blocks: Optional[List[Dict[str, Any]]] = None
+    text: Optional[str] = None
