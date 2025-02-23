@@ -67,3 +67,25 @@ class DatabaseManager:
         except Exception as e:
             print(f"Error saving summary: {e}")
             return None
+
+    def save_notification(self, transcript_id: str, channel: str, status: str) -> Dict[str, Any]:
+        """Save notification record to the database."""
+        try:
+            response = self.supabase.table('notifications').insert({
+                "transcript_id": transcript_id,
+                "notification_channel": channel,
+                "status": status
+            }).execute()
+            return response.data[0]
+        except Exception as e:
+            print(f"Error saving notification: {e}")
+            return None
+
+    def get_notification_by_transcript(self, transcript_id: str) -> Dict[str, Any]:
+        """Get notification status for a transcript."""
+        try:
+            response = self.supabase.table('notifications').select("*").eq('transcript_id', transcript_id).single().execute()
+            return response.data
+        except Exception as e:
+            print(f"Error fetching notification: {e}")
+            return None
