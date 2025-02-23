@@ -2,7 +2,6 @@ from typing import Dict, Union, Optional, Any
 import json
 import re
 from datetime import datetime
-from pathlib import Path
 
 class TranscriptFormatter:
     def __init__(self):
