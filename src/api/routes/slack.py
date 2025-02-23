@@ -10,52 +10,70 @@ from datetime import datetime
 router = APIRouter()
 SLACK_SIGNING_SECRET = os.getenv("SLACK_SIGNING_SECRET")
 
+async def verify_slack_request(request: Request, x_slack_signature: str = Header(...), x_slack_timestamp: str = Header(...)) -> bool:
+    """Verify that the request came from Slack"""
+    if not SLACK_SIGNING_SECRET:
+        raise HTTPException(status_code=500, detail="Slack signing secret not configured")
+
+    body = await request.body()
+    base_string = f"v0:{x_slack_timestamp}:{body.decode()}"
+
+    my_signature = 'v0=' + hmac.new(
+        SLACK_SIGNING_SECRET.encode(),
+        base_string.encode(),
+        hashlib.sha256
+    ).hexdigest()
+
+    if not hmac.compare_digest(my_signature, x_slack_signature):
+        raise HTTPException(status_code=401, detail="Invalid request signature")
+
+    return True
+
 @router.post("/events")
 async def slack_events(
     request: Request,
-) -> Dict[str, Any]:
+    query_service: QueryService = Depends(get_query_service)
+) -> Union[Dict[str, Any], SlackResponse]:
     """Handle Slack events"""
     try:
-        # Get the raw body first
+        # Get and parse the raw body
         body = await request.body()
-        body_text = body.decode()
-        print(f"Received body: {body_text}")  # Debug print
-
-        # Parse the body
         body_json = await request.json()
-        print(f"Parsed JSON: {body_json}")  # Debug print
 
         # Handle URL verification
         if body_json.get("type") == "url_verification":
-            challenge = body_json.get("challenge")
-            print(f"Returning challenge: {challenge}")  # Debug print
-            return {"challenge": challenge}
+            return SlackChallenge(
+                token=body_json.get("token"),
+                challenge=body_json.get("challenge"),
+                type=body_json.get("type")
+            ).dict()
 
-        # For other events, proceed with normal handling
+        # For regular events, verify the request
+        await verify_slack_request(request)
+
+        # Process the event
         event_type = body_json.get("event", {}).get("type")
         if event_type == "app_mention":
             channel = body_json["event"]["channel"]
-            text = body_json["event"]["text"]
+            text = body_json["event"]["text"].lower()
 
-            if "list summaries" in text.lower():
-                # Get query service
-                query_service = get_query_service()
+            if "list summaries" in text:
                 summaries = await query_service.get_all_summaries()
                 return format_summaries_response(summaries, channel)
 
         return {"status": "ok"}
 
     except Exception as e:
-        print(f"Error processing request: {str(e)}")  # Debug print
+        print(f"Error processing request: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-def format_summaries_response(summaries: list, channel: str) -> Dict[str, Any]:
+def format_summaries_response(summaries: list, channel: str) -> SlackResponse:
     """Format summaries list for Slack response"""
     if not summaries:
-        return {
-            "channel": channel,
-            "text": "No summaries found."
-        }
+        return SlackResponse(
+            channel=channel,
+            text="No summaries found."
+        )
 
     blocks = [
         {
@@ -79,7 +97,7 @@ def format_summaries_response(summaries: list, channel: str) -> Dict[str, Any]:
                 }
             })
 
-    return {
-        "channel": channel,
-        "blocks": blocks
-    }
+    return SlackResponse(
+        channel=channel,
+        blocks=blocks
+    )
