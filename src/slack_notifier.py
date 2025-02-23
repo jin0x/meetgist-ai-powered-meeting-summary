@@ -20,8 +20,11 @@ class SlackNotifier:
 
         # Define colors for different sections
         self.colors = {
-            "decisions": "#0088cc",  # Blue
-            "actions": "#800080"     # Purple
+            "title": "#36a64f",      # Green
+            "timestamp": "#ffcc00",   # Yellow
+            "summary": "#ff5733",     # Orange/Red
+            "decisions": "#0088cc",   # Blue
+            "actions": "#800080"      # Purple
         }
 
     def send_meeting_summary(
@@ -41,39 +44,39 @@ class SlackNotifier:
             decisions = summary_data.get('key_decisions', [])
             actions = summary_data.get('action_items', [])
 
-            # Create the message payload with mixed blocks and attachments
+            # Create the message payload
             payload = {
                 "channel": self.channel,
-                "blocks": [
+                "text": "📝 *New Meeting Summary*",
+                "attachments": [
+                    # Meeting Title (Green)
                     {
-                        "type": "header",
-                        "text": {
-                            "type": "plain_text",
-                            "text": "📝 New Meeting Summary"
-                        }
+                        "color": self.colors["title"],
+                        "fields": [{
+                            "title": "Meeting Title",
+                            "value": meeting_title,
+                            "short": True
+                        }]
                     },
+                    # Timestamp (Yellow)
                     {
-                        "type": "section",
-                        "fields": [
-                            {
-                                "type": "mrkdwn",
-                                "text": f"*Meeting:*\n{meeting_title}"
-                            },
-                            {
-                                "type": "mrkdwn",
-                                "text": f"*Generated:*\n{timestamp}"
-                            }
-                        ]
+                        "color": self.colors["timestamp"],
+                        "fields": [{
+                            "title": "Generated At",
+                            "value": timestamp,
+                            "short": True
+                        }]
                     },
+                    # Summary (Orange/Red)
                     {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": f"*Summary*\n{summary}"
-                        }
+                        "color": self.colors["summary"],
+                        "fields": [{
+                            "title": "Summary",
+                            "value": summary,
+                            "short": False
+                        }]
                     }
-                ],
-                "attachments": []
+                ]
             }
 
             # Add colored decisions section if available
