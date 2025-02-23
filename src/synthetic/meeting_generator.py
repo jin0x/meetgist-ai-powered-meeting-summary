@@ -47,7 +47,7 @@ class SyntheticMeetingGenerator:
     ) -> Dict[str, Any]:
         """Generate a synthetic meeting transcript"""
         topic_data = self.topics['topics'][topic_key]
-        
+
         # Set number of speakers if not specified
         if num_speakers is None:
             num_speakers = random.randint(
@@ -82,7 +82,7 @@ class SyntheticMeetingGenerator:
     ) -> List[Dict[str, Any]]:
         """Generate meeting content using IBM Granite"""
         prompt = self._create_meeting_prompt(context, num_speakers, duration_minutes)
-        
+
         # IBM Granite API call with proper authentication
         response = requests.post(
             "https://us-south.ml.cloud.ibm.com/ml/v1/text/generation?version=2023-05-29",
@@ -103,7 +103,7 @@ class SyntheticMeetingGenerator:
                 "project_id": self.project_id
             }
         )
-        
+
         if response.status_code == 401:
             # Token might be expired, refresh and retry
             self.iam_token = self._get_iam_token()
@@ -114,7 +114,7 @@ class SyntheticMeetingGenerator:
         # Process the generated text into segments
         generated_text = response.json()['results'][0]['generated_text']
         segments = self._parse_generated_text(generated_text, duration_minutes)
-        
+
         return segments
 
     def _parse_generated_text(self, text: str, duration_minutes: int) -> List[Dict[str, Any]]:
@@ -123,17 +123,17 @@ class SyntheticMeetingGenerator:
         segments = []
         current_time = 0
         time_increment = (duration_minutes * 60) / len(lines)  # Distribute time evenly
-        
+
         for line in lines:
             if not line.strip():
                 continue
-                
+
             # Extract speaker and text
             if ':' in line:
                 speaker, text = line.split(':', 1)
                 speaker = speaker.strip()
                 text = text.strip()
-                
+
                 if speaker and text:
                     segments.append({
                         "text": text,
@@ -142,7 +142,7 @@ class SyntheticMeetingGenerator:
                         "speaker": speaker
                     })
                     current_time += time_increment
-        
+
         return segments
 
     def _format_transcript(

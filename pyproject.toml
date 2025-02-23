@@ -9,6 +9,7 @@ dependencies = [
     "fastapi",
     "pydantic",
     "python-dotenv",
+    "pyyaml",
     "streamlit",
     "supabase",
     "uvicorn",
