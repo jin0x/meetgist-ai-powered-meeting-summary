@@ -1,16 +1,44 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, HTTPException, Header, Request
 from ..models.slack import SlackEvent, SlackChallenge
 from ..services.query import QueryService
-from typing import Union
+from typing import Union, Optional
+import hmac
+import hashlib
+import os
+from datetime import datetime
 
 router = APIRouter()
+SLACK_SIGNING_SECRET = os.getenv("SLACK_SIGNING_SECRET")
 
-@router.post("/slack/events")
+async def verify_slack_request(request: Request, x_slack_signature: str = Header(...), x_slack_timestamp: str = Header(...)) -> bool:
+    """Verify that the request came from Slack"""
+    if not SLACK_SIGNING_SECRET:
+        raise HTTPException(status_code=500, detail="Slack signing secret not configured")
+
+    body = await request.body()
+    base_string = f"v0:{x_slack_timestamp}:{body.decode()}"
+
+    # Create signature
+    my_signature = 'v0=' + hmac.new(
+        SLACK_SIGNING_SECRET.encode(),
+        base_string.encode(),
+        hashlib.sha256
+    ).hexdigest()
+
+    if not hmac.compare_digest(my_signature, x_slack_signature):
+        raise HTTPException(status_code=401, detail="Invalid request signature")
+
+    return True
+
+@router.post("/events")
 async def slack_events(
+    request: Request,
     event: Union[SlackEvent, SlackChallenge],
-    query_service: QueryService = Depends(QueryService)
+    query_service: QueryService = QueryService()
 ) -> dict:
     """Handle Slack events"""
+    # Verify request first
+    await verify_slack_request(request)
 
     # Handle URL verification
     if hasattr(event, 'challenge'):
@@ -20,41 +48,50 @@ async def slack_events(
     if event.event.type == "app_mention":
         command_text = event.event.text.lower()
 
-        # Simple command handling for now
-        if "list summaries" in command_text:
-            summaries = await query_service.get_all_summaries()
-            return {
-                "type": "message",
-                "channel": event.event.channel,
-                "text": format_summaries_response(summaries)
-            }
+        try:
+            if "list summaries" in command_text:
+                summaries = await query_service.get_all_summaries()
+                return format_summaries_response(summaries, event.event.channel)
 
-        elif "list meetings" in command_text:
-            meetings = await query_service.get_all_meetings()
+        except Exception as e:
+            print(f"Error processing command: {e}")
             return {
-                "type": "message",
                 "channel": event.event.channel,
-                "text": format_meetings_response(meetings)
+                "text": "❌ Sorry, I encountered an error processing your request."
             }
 
     return {"status": "ok"}
 
-def format_summaries_response(summaries: list) -> str:
+def format_summaries_response(summaries: list, channel: str) -> dict:
     """Format summaries list for Slack response"""
     if not summaries:
-        return "No summaries found."
+        return {
+            "channel": channel,
+            "text": "No summaries found."
+        }
 
-    response = "📝 *Available Summaries:*\n"
+    blocks = [
+        {
+            "type": "header",
+            "text": {
+                "type": "plain_text",
+                "text": "📝 Available Summaries",
+                "emoji": True
+            }
+        }
+    ]
+
     for summary in summaries:
-        response += f"• {summary['meeting_title']} ({summary['created_at']})\n"
-    return response
+        created_at = datetime.fromisoformat(summary['created_at']).strftime("%Y-%m-%d")
+        blocks.append({
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"*{summary['transcripts']['meeting_title']}*\n{created_at}"
+            }
+        })
 
-def format_meetings_response(meetings: list) -> str:
-    """Format meetings list for Slack response"""
-    if not meetings:
-        return "No meetings found."
-
-    response = "📅 *Available Meetings:*\n"
-    for meeting in meetings:
-        response += f"• {meeting['meeting_title']}\n"
-    return response
+    return {
+        "channel": channel,
+        "blocks": blocks
+    }

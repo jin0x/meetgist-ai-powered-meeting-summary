@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from .routes import slack
 
 app = FastAPI(
     title="MidGist API",
@@ -15,6 +16,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include routers
+app.include_router(slack.router, tags=["slack"])
 
 # Health check endpoint
 @app.get("/health")
