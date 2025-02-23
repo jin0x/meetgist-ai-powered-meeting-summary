@@ -102,7 +102,7 @@ with st.sidebar:
         2. Move to Transcript Management
         3. Generate Summary when ready
 
-        Need help? Contact support@meetgist.com
+        Interested for the demo? Contact john.leskas@gmail.com
         """)
 
 # Main content area based on selected tab
@@ -176,7 +176,7 @@ elif selected_tab == "Transcript Management":
                 "📝 Meeting Title",
                 placeholder="e.g., Team Sync - Feb 2024"
             )
-        
+
         if uploaded_file and meeting_title:
             if st.button("🚀 Start Transcription", use_container_width=True):
                 with st.spinner("🔄 Processing audio file..."):
@@ -284,7 +284,7 @@ elif selected_tab == "Transcript Management":
 
     else:  # Generate Synthetic Meeting
         st.subheader("Generate Synthetic Meeting")
-        
+
         # Enhanced Meeting Type Selection
         meeting_type = st.selectbox(
             "Select Meeting Type",
@@ -366,7 +366,7 @@ elif selected_tab == "Transcript Management":
                         duration_minutes=duration,
                         context=meeting_context
                     )
-                    
+
                     if result:
                         st.success("✨ Synthetic meeting generated successfully!")
                         st.session_state.current_tab = "Generate Summary"
@@ -377,7 +377,7 @@ elif selected_tab == "Transcript Management":
     # Display existing transcripts
     st.markdown("---")
     st.subheader("📚 Existing Transcripts")
-    
+
     transcripts = st.session_state.db.get_all_transcripts()
     if transcripts:
         for transcript in transcripts:
@@ -396,7 +396,7 @@ elif selected_tab == "Generate Summary":
 
     try:
         transcripts = st.session_state.db.get_all_transcripts()
-        
+
         if not transcripts:
             st.warning("⚠️ No transcripts available")
             if st.button("➕ Add New Transcript"):
@@ -409,30 +409,30 @@ elif selected_tab == "Generate Summary":
                 options=[t["meeting_title"] for t in transcripts],
                 key="transcript_selector"
             )
-            
+
             # Find the selected transcript
             selected_transcript = next(t for t in transcripts if t["meeting_title"] == selected_title)
             selected_id = selected_transcript["id"]
-            
+
             # Check for existing summary
             existing_summary = st.session_state.db.get_summary_by_transcript_id(selected_id)
-            
+
             if existing_summary:
                 # Display existing summary without generate button
                 st.success("✅ Summary available!")
                 st.markdown("### 📝 Overview")
                 st.write(existing_summary["summary_text"])
-                
+
                 if existing_summary.get("key_decisions"):
                     st.markdown("### 🎯 Key Decisions")
                     for decision in existing_summary["key_decisions"]:
                         st.markdown(f"- {decision}")
-                
+
                 if existing_summary.get("action_items"):
                     st.markdown("### ✅ Action Items")
                     for action in existing_summary["action_items"]:
                         st.markdown(f"- {action}")
-                
+
                 # Option to regenerate at the bottom
                 if st.button("🔄 Regenerate Summary", type="secondary", use_container_width=True):
                     with st.spinner("🔄 Regenerating summary..."):
@@ -443,7 +443,7 @@ elif selected_tab == "Generate Summary":
                                     transcript_data=transcript["content"],
                                     transcript_id=selected_id
                                 )
-                                
+
                                 saved_summary = st.session_state.db.save_summary(
                                     transcript_id=selected_id,
                                     summary_text=summary_result["summary_text"],
@@ -468,7 +468,7 @@ elif selected_tab == "Generate Summary":
                                     transcript_data=transcript["content"],
                                     transcript_id=selected_id
                                 )
-                                
+
                                 saved_summary = st.session_state.db.save_summary(
                                     transcript_id=selected_id,
                                     summary_text=summary_result["summary_text"],
@@ -481,7 +481,7 @@ elif selected_tab == "Generate Summary":
                                     st.rerun()
                         except Exception as e:
                             st.error(f"❌ Error: {str(e)}")
-                    
+
     except Exception as e:
         st.error(f"❌ Database error: {str(e)}")
 
@@ -490,7 +490,7 @@ st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center'>
-        <p>Made with ❤️ by MeetGist Team | Need help? Contact support@meetgist.com</p>
+        <p>Made with ❤️ by MeetGist Team | Interested for the demo? Contact john.leskas@gmail.com
     </div>
     """,
     unsafe_allow_html=True
