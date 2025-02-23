@@ -99,7 +99,7 @@ Our project is built with modern technologies:
 1. **Clone the Repository:**
 
    ```
-   git clone https://github.com/yourusername/meetgist.git
+   git clone https://github.com/jin0x/meetgist-ai-powered-meeting-summary/
    ```
 
 2. **Install Dependencies:**
