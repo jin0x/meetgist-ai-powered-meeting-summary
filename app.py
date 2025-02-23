@@ -1,8 +1,8 @@
 import streamlit as st
-import json
 from pathlib import Path
 from src.audio_transcriber import AudioTranscriber
 from src.meeting_summarizer import MeetingSummarizer
+from src.slack_notifier import SlackNotifier
 from src.utils import save_uploaded_file, get_unique_filename
 from src.db import DatabaseManager
 from config import ASSEMBLYAI_API_KEY, IBM_API_KEY, IBM_PROJECT_ID
@@ -31,13 +31,17 @@ if 'transcriber' not in st.session_state:
 if 'db' not in st.session_state:
     st.session_state.db = DatabaseManager()
 
-# Initialize summarizer in session state if not exists
+# Initialize summarizer in session state
 if 'summarizer' not in st.session_state:
     st.session_state.summarizer = MeetingSummarizer(
         api_key=IBM_API_KEY,
         project_id=IBM_PROJECT_ID,
         space_id=None
     )
+
+# Initialize slack notifier in session state
+if 'slack_notifier' not in st.session_state:
+    st.session_state.slack_notifier = SlackNotifier()
 
 # Sidebar for navigation
 st.sidebar.title("Navigation")
@@ -297,7 +301,33 @@ elif tab == "Generate Summary":
                     )
 
                     if saved_summary:
-                        st.success("Summary generated and saved!")
+                        # Send to Slack
+                        slack_success = st.session_state.slack_notifier.send_meeting_summary(
+                            meeting_title=selected_title,
+                            summary_data=saved_summary
+                        )
+
+                        # Save notification status
+                        if slack_success:
+                            st.session_state.db.save_notification(
+                                transcript_id=selected_id,
+                                channel="SLACK",
+                                status="SENT"
+                            )
+                        else:
+                            st.session_state.db.save_notification(
+                                transcript_id=selected_id,
+                                channel="SLACK",
+                                status="FAILED"
+                            )
+
+                        # Show success message
+                        st.success("✅ Summary generated and saved!")
+                        if slack_success:
+                            st.success("✅ Summary sent to Slack!")
+                        else:
+                            st.warning("⚠️ Failed to send summary to Slack")
+
                         st.rerun()
                     else:
                         st.error("Failed to save summary.")
