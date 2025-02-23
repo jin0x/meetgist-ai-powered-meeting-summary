@@ -490,7 +490,7 @@ st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center'>
-        <p>Made with ❤️ by MeetGist Team | Interested for the demo? Contact john.leskas@gmail.com
+        <p>Made with ❤️ by Radiant Minds | Interested for the demo? Contact john.leskas@gmail.com
     </div>
     """,
     unsafe_allow_html=True
