@@ -139,6 +139,7 @@ h3,
 .stTextInput > div > div > input,
 .stTextArea > textarea {
   background-color: white;
+  color: var(--neutral-800);
   border: 1px solid var(--neutral-300);
   border-radius: var(--border-radius-md);
   padding: var(--spacing-sm) var(--spacing-md);
@@ -671,7 +672,7 @@ h3,
   background-color: rgba(247, 248, 250, 0.6);
   border: 1px solid rgba(230, 234, 241, 0.8);
   border-radius: 8px;
-  margin: 0.75rem 0;
+  margin: 0.5rem 0;
   transition: all 0.2s ease;
 }
 
