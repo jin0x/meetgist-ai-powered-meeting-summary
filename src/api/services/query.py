@@ -17,8 +17,8 @@ class QueryService:
             print(f"Error fetching summaries: {e}")
             return []
 
-    async def get_all_meetings(self) -> List[Dict[str, Any]]:
-        """Get all meeting titles"""
+    async def get_all_transcripts(self) -> List[Dict[str, Any]]:
+        """Get all transcripts titles"""
         try:
             response = self.db.supabase.table('transcripts')\
                 .select("meeting_title, created_at")\

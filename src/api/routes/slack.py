@@ -77,6 +77,21 @@ async def slack_events(
                 else:
                     print("Successfully sent response to Slack")
 
+            elif "list transcripts" in text:
+                print("Processing 'list transcripts' command")
+                transcripts = await query_service.get_all_transcripts()
+                print(f"Found transcripts: {transcripts}")
+
+                success = slack_notifier.send_transcripts_list(
+                    transcripts=transcripts,
+                    channel=channel
+                )
+
+                if not success:
+                    print("Failed to send response to Slack")
+                else:
+                    print("Successfully sent response to Slack")
+
         # Always return a 200 OK to Slack
         return {"status": "ok"}
 

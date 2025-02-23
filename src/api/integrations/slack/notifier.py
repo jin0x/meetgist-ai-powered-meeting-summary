@@ -106,6 +106,49 @@ class SlackNotifier:
             print(f"Error sending meeting summary: {str(e)}")
             return False
 
+    def send_transcripts_list(
+        self,
+        transcripts: List[Dict[str, Any]],
+        channel: Optional[str] = None
+    ) -> bool:
+        """Send formatted list of available transcripts."""
+        try:
+            if not transcripts:
+                return self._send_message({
+                    "channel": channel or self.channel,
+                    "text": "No transcripts found."
+                })
+
+            blocks = [
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "📝 Available Transcripts",
+                        "emoji": True
+                    }
+                }
+            ]
+
+            for transcript in transcripts:
+                created_at = datetime.fromisoformat(transcript['created_at']).strftime("%Y-%m-%d")
+                blocks.append({
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"*{transcript.get('meeting_title', 'Unknown Meeting')}*\n📅 {created_at}"
+                    }
+                })
+
+            return self._send_message({
+                "channel": channel or self.channel,
+                "blocks": blocks
+            })
+
+        except Exception as e:
+            print(f"Error sending transcripts list: {str(e)}")
+            return False
+
     def send_summaries_list(
         self,
         summaries: List[Dict[str, Any]],
