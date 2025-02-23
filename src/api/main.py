@@ -3,8 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from .routes import slack
 
 app = FastAPI(
-    title="MidGist API",
-    description="API for MidGist Slack bot integration",
+    title="MeetGist API",
+    description="API for MeetGist Slack bot integration",
     version="1.0.0"
 )
 
@@ -17,10 +17,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
-app.include_router(slack.router, prefix="/api/v1")
+# Include routers - Note the prefix change
+app.include_router(
+    slack.router,
+    prefix="/api/v1/events",
+    tags=["slack"]
+)
 
-# Health check endpoint
-@app.get("/health")
-async def health_check():
-    return {"status": "ok"}
+# Root health check
+@app.get("/")
+async def root():
+    return {"status": "ok", "message": "MeetGist API is running"}

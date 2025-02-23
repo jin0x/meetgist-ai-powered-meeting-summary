@@ -11,25 +11,6 @@ import json
 router = APIRouter()
 SLACK_SIGNING_SECRET = os.getenv("SLACK_SIGNING_SECRET")
 
-async def verify_slack_request(request: Request, x_slack_signature: str = Header(...), x_slack_timestamp: str = Header(...)) -> bool:
-    """Verify that the request came from Slack"""
-    if not SLACK_SIGNING_SECRET:
-        raise HTTPException(status_code=500, detail="Slack signing secret not configured")
-
-    body = await request.body()
-    base_string = f"v0:{x_slack_timestamp}:{body.decode()}"
-
-    my_signature = 'v0=' + hmac.new(
-        SLACK_SIGNING_SECRET.encode(),
-        base_string.encode(),
-        hashlib.sha256
-    ).hexdigest()
-
-    if not hmac.compare_digest(my_signature, x_slack_signature):
-        raise HTTPException(status_code=401, detail="Invalid request signature")
-
-    return True
-
 @router.get("/test")
 async def test_endpoint():
     """Test endpoint"""
@@ -42,63 +23,59 @@ async def health_check():
     print("Health check endpoint hit!")  # Debug log
     return {"status": "healthy"}
 
-@router.post("/events")
+@router.post("/")  # Note: This is the main events endpoint
 async def slack_events(
     request: Request,
     query_service: QueryService = Depends(get_query_service)
 ) -> Union[Dict[str, Any], SlackResponse]:
     """Handle Slack events"""
+    print("\n=== New Request Received ===")
+
+    # Log all headers
+    print("\nHeaders:")
+    for name, value in request.headers.items():
+        print(f"{name}: {value}")
+
     try:
         # Get and parse the raw body
         body = await request.body()
         body_text = body.decode()
-        print(f"Received raw body: {body_text}")  # Debug log
+        print(f"\nRaw Body:\n{body_text}")
 
         body_json = await request.json()
-        print(f"Parsed JSON: {json.dumps(body_json, indent=2)}")  # Debug log
+        print(f"\nParsed JSON:\n{json.dumps(body_json, indent=2)}")
 
         # Handle URL verification
         if body_json.get("type") == "url_verification":
-            print("Handling URL verification")  # Debug log
+            print("Handling URL verification")
             return SlackChallenge(
                 token=body_json.get("token"),
                 challenge=body_json.get("challenge"),
                 type=body_json.get("type")
             ).dict()
 
-        # For regular events, verify the request
-        await verify_slack_request(request)
-
-        # Parse the event using our model
-        try:
-            event = SlackEvent(**body_json)
-            print(f"Parsed Slack event: {event}")  # Debug log
-        except Exception as e:
-            print(f"Error parsing event: {e}")  # Debug log
-            event = body_json  # Fallback to raw JSON
-
         # Process the event
         event_type = body_json.get("event", {}).get("type")
-        print(f"Event type: {event_type}")  # Debug log
+        print(f"Event type: {event_type}")
 
         if event_type == "app_mention":
             channel = body_json["event"]["channel"]
             text = body_json["event"]["text"].lower()
-            print(f"Received command in channel {channel}: {text}")  # Debug log
+            print(f"Received command in channel {channel}: {text}")
 
             if "list summaries" in text:
-                print("Processing 'list summaries' command")  # Debug log
+                print("Processing 'list summaries' command")
                 summaries = await query_service.get_all_summaries()
-                print(f"Found summaries: {summaries}")  # Debug log
+                print(f"Found summaries: {summaries}")
                 response = format_summaries_response(summaries, channel)
-                print(f"Sending response: {response}")  # Debug log
+                print(f"Sending response: {response}")
                 return response
 
         return {"status": "ok"}
 
     except Exception as e:
         print(f"Error processing request: {str(e)}")
-        print(f"Error details: {type(e).__name__}")  # Debug log
+        print(f"Error details: {type(e).__name__}")
         raise HTTPException(status_code=500, detail=str(e))
 
 def format_summaries_response(summaries: list, channel: str) -> SlackResponse:
@@ -135,3 +112,22 @@ def format_summaries_response(summaries: list, channel: str) -> SlackResponse:
         channel=channel,
         blocks=blocks
     )
+
+async def verify_slack_request(request: Request, x_slack_signature: str = Header(...), x_slack_timestamp: str = Header(...)) -> bool:
+    """Verify that the request came from Slack"""
+    if not SLACK_SIGNING_SECRET:
+        raise HTTPException(status_code=500, detail="Slack signing secret not configured")
+
+    body = await request.body()
+    base_string = f"v0:{x_slack_timestamp}:{body.decode()}"
+
+    my_signature = 'v0=' + hmac.new(
+        SLACK_SIGNING_SECRET.encode(),
+        base_string.encode(),
+        hashlib.sha256
+    ).hexdigest()
+
+    if not hmac.compare_digest(my_signature, x_slack_signature):
+        raise HTTPException(status_code=401, detail="Invalid request signature")
+
+    return True
