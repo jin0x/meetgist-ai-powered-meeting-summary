@@ -6,6 +6,8 @@ from src.slack_notifier import SlackNotifier
 from src.utils import save_uploaded_file, get_unique_filename
 from src.db import DatabaseManager
 from config import ASSEMBLYAI_API_KEY, IBM_API_KEY, IBM_PROJECT_ID
+from src.synthetic.streamlit_component import render_synthetic_meeting_generator
+from src.synthetic.meeting_generator import SyntheticMeetingGenerator
 
 # Page configuration (MUST BE THE FIRST STREAMLIT COMMAND)
 st.set_page_config(page_title="Meeting Summary & Decision Tracker", layout="wide")
@@ -43,6 +45,13 @@ if 'summarizer' not in st.session_state:
 if 'slack_notifier' not in st.session_state:
     st.session_state.slack_notifier = SlackNotifier()
 
+# Initialize synthetic meeting generator in session state
+if 'synthetic_generator' not in st.session_state:
+    st.session_state.synthetic_generator = SyntheticMeetingGenerator(
+        api_key=IBM_API_KEY,
+        project_id=IBM_PROJECT_ID
+    )
+
 # Sidebar for navigation
 st.sidebar.title("Navigation")
 tabs = ["Instructions", "Transcript Management", "Generate Summary"]
@@ -72,9 +81,12 @@ elif tab == "Transcript Management":
     st.session_state.current_tab = "Transcript Management"
     st.title("Transcript Management")
 
-    # Upload Section
-    st.header("Upload Transcript")
-    upload_type = st.radio("Choose Upload Type", ["Audio File", "Text Transcript"])
+    # Upload type selection
+    upload_type = st.radio(
+        "Select Input Type",
+        ["Audio File", "Text Input", "Generate Synthetic Meeting"],
+        horizontal=True
+    )
 
     if upload_type == "Audio File":
         col1, col2 = st.columns([2, 1])
@@ -150,7 +162,7 @@ elif tab == "Transcript Management":
                     if file_path and Path(file_path).exists():
                         Path(file_path).unlink()
 
-    elif upload_type == "Text Transcript":
+    elif upload_type == "Text Input":
         col1, col2 = st.columns([2, 1])
         with col1:
             text_transcript = st.text_area(
@@ -182,8 +194,15 @@ elif tab == "Transcript Management":
             except Exception as e:
                 st.error(f"Failed to process transcript: {str(e)}")
 
-    # List of Saved Transcripts
-    st.header("Saved Transcripts")
+    else:  # Generate Synthetic Meeting
+        render_synthetic_meeting_generator(
+            generator=st.session_state.synthetic_generator,
+            save_callback=st.session_state.db.save_transcript
+        )
+
+    # Show existing transcripts
+    st.divider()
+    st.subheader("Existing Transcripts")
     transcripts = st.session_state.db.get_all_transcripts()
 
     if transcripts:
@@ -204,7 +223,6 @@ elif tab == "Transcript Management":
     else:
         st.info("No transcripts available yet. Upload an audio file or text to get started!")
 
-# Generate Summary Tab
 # Generate Summary Tab
 elif tab == "Generate Summary":
     st.session_state.current_tab = "Generate Summary"

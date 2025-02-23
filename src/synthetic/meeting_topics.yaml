@@ -1,0 +1,70 @@
+topics:
+  project_kickoff:
+    title: "Project Kickoff Meeting"
+    context: "Initial meeting to discuss project scope, objectives, and team roles"
+    typical_duration: 60 # minutes
+    min_speakers: 3
+    max_speakers: 6
+
+  sprint_retrospective:
+    title: "Sprint Retrospective"
+    context: "Team discussion about the previous sprint's achievements and challenges"
+    typical_duration: 45
+    min_speakers: 4
+    max_speakers: 8
+
+  budget_review:
+    title: "Budget Review Meeting"
+    context: "Financial review and budget planning discussion"
+    typical_duration: 50
+    min_speakers: 3
+    max_speakers: 5
+
+  product_launch:
+    title: "Product Launch Planning"
+    context: "Strategic planning for upcoming product launch"
+    typical_duration: 55
+    min_speakers: 4
+    max_speakers: 7
+
+  customer_feedback:
+    title: "Customer Feedback Discussion"
+    context: "Analysis of customer feedback and improvement strategies"
+    typical_duration: 40
+    min_speakers: 3
+    max_speakers: 6
+
+  performance_review:
+    title: "Team Performance Review"
+    context: "Quarterly team performance and goals discussion"
+    typical_duration: 45
+    min_speakers: 3
+    max_speakers: 5
+
+  tech_architecture:
+    title: "Technical Architecture Planning"
+    context: "Discussion of technical architecture and implementation strategies"
+    typical_duration: 60
+    min_speakers: 3
+    max_speakers: 6
+
+  marketing_strategy:
+    title: "Marketing Strategy Session"
+    context: "Planning marketing initiatives and campaign strategies"
+    typical_duration: 50
+    min_speakers: 3
+    max_speakers: 7
+
+  risk_assessment:
+    title: "Risk Assessment Meeting"
+    context: "Identifying and discussing potential project risks"
+    typical_duration: 40
+    min_speakers: 3
+    max_speakers: 6
+
+  quarterly_goals:
+    title: "Quarterly Goals Review"
+    context: "Review and planning of quarterly objectives"
+    typical_duration: 55
+    min_speakers: 4
+    max_speakers: 8
