@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException, Header, Request, Depends
-from ..models.slack import SlackChallenge, SlackEvent, SlackResponse
+from ..models.slack import SlackChallenge, SlackResponse
+from ..integrations.slack.notifier import SlackNotifier
 from ..services.query import QueryService, get_query_service
-from typing import Union, Dict, Any
+from typing import Dict, Any
 import hmac
 import hashlib
 import os
@@ -10,6 +11,9 @@ import json
 
 router = APIRouter()
 SLACK_SIGNING_SECRET = os.getenv("SLACK_SIGNING_SECRET")
+
+# Initialize the notifier
+slack_notifier = SlackNotifier()
 
 @router.get("/test")
 async def test_endpoint():
@@ -27,14 +31,9 @@ async def health_check():
 async def slack_events(
     request: Request,
     query_service: QueryService = Depends(get_query_service)
-) -> Union[Dict[str, Any], SlackResponse]:
+) -> Dict[str, Any]:
     """Handle Slack events"""
     print("\n=== New Request Received ===")
-
-    # Log all headers
-    print("\nHeaders:")
-    for name, value in request.headers.items():
-        print(f"{name}: {value}")
 
     try:
         # Get and parse the raw body
@@ -67,10 +66,18 @@ async def slack_events(
                 print("Processing 'list summaries' command")
                 summaries = await query_service.get_all_summaries()
                 print(f"Found summaries: {summaries}")
-                response = format_summaries_response(summaries, channel)
-                print(f"Sending response: {response}")
-                return response
 
+                success = slack_notifier.send_summaries_list(
+                    summaries=summaries,
+                    channel=channel
+                )
+
+                if not success:
+                    print("Failed to send response to Slack")
+                else:
+                    print("Successfully sent response to Slack")
+
+        # Always return a 200 OK to Slack
         return {"status": "ok"}
 
     except Exception as e:
