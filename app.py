@@ -1,15 +1,15 @@
 import streamlit as st
 from pathlib import Path
-from src.audio_transcriber import AudioTranscriber
-from src.meeting_summarizer import MeetingSummarizer
-from src.slack_notifier import SlackNotifier
-from src.utils import save_uploaded_file, get_unique_filename
-from src.db import DatabaseManager
+from src.core.audio_transcriber import AudioTranscriber
+from src.core.meeting_summarizer import MeetingSummarizer
+from src.core.utils import save_uploaded_file, get_unique_filename
+from src.core.db import DatabaseManager
+from src.api.integrations.slack.notifier import SlackNotifier
 from config import ASSEMBLYAI_API_KEY, IBM_API_KEY, IBM_PROJECT_ID
 from src.synthetic.streamlit_component import render_synthetic_meeting_generator
 from src.synthetic.meeting_generator import SyntheticMeetingGenerator
 
-# Page configuration (MUST BE THE FIRST STREAMLIT COMMAND)
+# Page configuration
 st.set_page_config(page_title="Meeting Summary & Decision Tracker", layout="wide")
 
 # Custom CSS for styling

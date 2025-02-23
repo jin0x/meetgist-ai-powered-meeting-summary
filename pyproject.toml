@@ -5,8 +5,11 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "streamlit",
     "assemblyai",
+    "fastapi",
+    "pydantic",
     "python-dotenv",
+    "streamlit",
     "supabase",
+    "uvicorn",
 ]

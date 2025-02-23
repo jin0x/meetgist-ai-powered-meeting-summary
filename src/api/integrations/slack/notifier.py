@@ -31,11 +31,10 @@ class SlackNotifier:
         self,
         meeting_title: str,
         summary_data: Dict[str, Any],
-        timestamp: Optional[str] = None
+        timestamp: Optional[str] = None,
+        channel: Optional[str] = None
     ) -> bool:
-        """
-        Send meeting summary to Slack channel with enhanced formatting.
-        """
+        """Send meeting summary to Slack channel with enhanced formatting."""
         try:
             if not timestamp:
                 timestamp = datetime.now().isoformat()
@@ -46,7 +45,7 @@ class SlackNotifier:
 
             # Create the message payload
             payload = {
-                "channel": self.channel,
+                "channel": channel or self.channel,
                 "text": "📝 *New Meeting Summary*",
                 "attachments": [
                     # Meeting Title (Green)
@@ -101,6 +100,102 @@ class SlackNotifier:
                     }]
                 })
 
+            return self._send_message(payload)
+
+        except Exception as e:
+            print(f"Error sending meeting summary: {str(e)}")
+            return False
+
+    def send_transcripts_list(
+        self,
+        transcripts: List[Dict[str, Any]],
+        channel: Optional[str] = None
+    ) -> bool:
+        """Send formatted list of available transcripts."""
+        try:
+            if not transcripts:
+                return self._send_message({
+                    "channel": channel or self.channel,
+                    "text": "No transcripts found."
+                })
+
+            blocks = [
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "📝 Available Transcripts",
+                        "emoji": True
+                    }
+                }
+            ]
+
+            for transcript in transcripts:
+                created_at = datetime.fromisoformat(transcript['created_at']).strftime("%Y-%m-%d")
+                blocks.append({
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"*{transcript.get('meeting_title', 'Unknown Meeting')}*\n📅 {created_at}"
+                    }
+                })
+
+            return self._send_message({
+                "channel": channel or self.channel,
+                "blocks": blocks
+            })
+
+        except Exception as e:
+            print(f"Error sending transcripts list: {str(e)}")
+            return False
+
+    def send_summaries_list(
+        self,
+        summaries: List[Dict[str, Any]],
+        channel: Optional[str] = None
+    ) -> bool:
+        """Send formatted list of available summaries."""
+        try:
+            if not summaries:
+                return self._send_message({
+                    "channel": channel or self.channel,
+                    "text": "No summaries found."
+                })
+
+            blocks = [
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "📝 Available Summaries",
+                        "emoji": True
+                    }
+                }
+            ]
+
+            for summary in summaries:
+                if summary.get('created_at'):
+                    created_at = datetime.fromisoformat(summary['created_at']).strftime("%Y-%m-%d")
+                    blocks.append({
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"*{summary.get('transcripts', {}).get('meeting_title', 'Unknown Meeting')}*\n{created_at}"
+                        }
+                    })
+
+            return self._send_message({
+                "channel": channel or self.channel,
+                "blocks": blocks
+            })
+
+        except Exception as e:
+            print(f"Error sending summaries list: {str(e)}")
+            return False
+
+    def _send_message(self, payload: Dict[str, Any]) -> bool:
+        """Send message to Slack."""
+        try:
             response = requests.post(
                 self.base_url,
                 headers=self.headers,
@@ -119,7 +214,7 @@ class SlackNotifier:
             return True
 
         except Exception as e:
-            print(f"Error sending Slack notification: {str(e)}")
+            print(f"Error sending message to Slack: {str(e)}")
             return False
 
     def _format_list(self, items: List[str], prefix: str = "• ") -> str:
