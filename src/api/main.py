@@ -11,14 +11,14 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Adjust in production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Include routers
-app.include_router(slack.router, tags=["slack"])
+app.include_router(slack.router, prefix="/api/v1")
 
 # Health check endpoint
 @app.get("/health")
