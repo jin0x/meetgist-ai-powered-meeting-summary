@@ -19,7 +19,7 @@ We are a group of passionate developers and AI enthusiasts!
 | **John Leskas**         | Lead Architect and Team Coordinator | [LinkedIn](https://www.linkedin.com/in/john-leskas/)               | [GitHub](https://github.com/jin0x)          |
 | **Andreas Vlaniadis**   | AI Engineer                         | [LinkedIn](https://www.linkedin.com/in/andreasvlaniadis/)          | [GitHub](https://github.com/Vlaniadisa)     |
 | **Vasiliki Doropoulou** | AI Engineer                         | [LinkedIn](https://www.linkedin.com/in/vasilikidoropoulou/)        | [GitHub](https://github.com/vassod)         |
-| **Muhammad Hanzla**     | Frontend Engineer                   | [LinkedIn](https://www.linkedin.com/in/muhammad-hanzla-787081279/) | [GitHub](https://github.com/hanzlikhan)     |
+| **Muhammad Hanzla**     | AI + Frontend Engineer                   | [LinkedIn](https://www.linkedin.com/in/muhammad-hanzla-787081279/) | [GitHub](https://github.com/hanzlikhan)     |
 | **Sikander Nawaz**      | Backend Engineer                    | [LinkedIn](https://www.linkedin.com/in/sikander-nawaz/)            | [GitHub](https://github.com/sikander-nawaz) |
 
 ---
