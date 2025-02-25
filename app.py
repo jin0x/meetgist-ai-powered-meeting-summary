@@ -283,96 +283,19 @@ elif selected_tab == "Transcript Management":
                         st.error(f"❌ Processing failed: {str(e)}")
 
     else:  # Generate Synthetic Meeting
-        st.subheader("Generate Synthetic Meeting")
-
-        # Enhanced Meeting Type Selection
-        meeting_type = st.selectbox(
-            "Select Meeting Type",
-            [
-                "Project Kickoff Meeting",
-                "Sprint Planning Session",
-                "Technical Architecture Review",
-                "Product Strategy Workshop",
-                "Stakeholder Update Meeting",
-                "Risk Assessment Review",
-                "Resource Planning Session",
-                "Quality Assurance Planning",
-                "Release Planning Meeting",
-                "Project Retrospective"
-            ],
-            format_func=lambda x: {
-                "Project Kickoff Meeting": "🚀 Project Kickoff Meeting",
-                "Sprint Planning Session": "📅 Sprint Planning Session",
-                "Technical Architecture Review": "🏗️ Technical Architecture Review",
-                "Product Strategy Workshop": "💡 Product Strategy Workshop",
-                "Stakeholder Update Meeting": "👥 Stakeholder Update Meeting",
-                "Risk Assessment Review": "⚠️ Risk Assessment Review",
-                "Resource Planning Session": "📊 Resource Planning Session",
-                "Quality Assurance Planning": "✅ Quality Assurance Planning",
-                "Release Planning Meeting": "🎯 Release Planning Meeting",
-                "Project Retrospective": "🔄 Project Retrospective"
-            }[x],
-            help="Choose the type of meeting you want to simulate"
-        )
-
-        # Add context hints based on meeting type
-        context_hints = {
-            "Project Kickoff Meeting": "Initial meeting to discuss project scope, objectives, and team roles",
-            "Sprint Planning Session": "Planning upcoming sprint tasks, estimations, and team capacity",
-            "Technical Architecture Review": "Review and discuss system architecture, technical decisions, and implementation approaches",
-            "Product Strategy Workshop": "Discuss product vision, roadmap, and strategic initiatives",
-            "Stakeholder Update Meeting": "Update on project progress, milestones, and addressing stakeholder concerns",
-            "Risk Assessment Review": "Identify and assess project risks, mitigation strategies, and contingency plans",
-            "Resource Planning Session": "Discuss team allocation, resource requirements, and capacity planning",
-            "Quality Assurance Planning": "Plan testing strategies, quality metrics, and acceptance criteria",
-            "Release Planning Meeting": "Plan upcoming release, features, and deployment strategy",
-            "Project Retrospective": "Review project outcomes, lessons learned, and improvement opportunities"
-        }
-
-        col1, col2 = st.columns(2)
-        with col1:
-            num_speakers = st.slider(
-                "Number of Speakers",
-                min_value=2,
-                max_value=6,
-                value=3,
-                help="Select the number of participants"
+        # Use the streamlit component for synthetic meeting generation
+        try:
+            render_synthetic_meeting_generator(
+                generator=st.session_state.synthetic_generator,
+                save_callback=lambda title, content, source_type: st.session_state.db.save_transcript(
+                    title=title,
+                    content=content,
+                    source_type=source_type
+                )
             )
-        with col2:
-            duration = st.slider(
-                "Meeting Duration (minutes)",
-                min_value=15,
-                max_value=120,
-                value=30,
-                step=15,
-                help="Select the meeting duration"
-            )
-
-        # Show context hint based on selected meeting type
-        st.info(f"💡 **Meeting Context Hint:** {context_hints[meeting_type]}")
-
-        meeting_context = st.text_area(
-            "Additional Context",
-            placeholder="Add any specific details, agenda items, or discussion points...",
-            help="Provide additional context to make the synthetic meeting more relevant"
-        )
-
-        if st.button("🤖 Generate Synthetic Meeting", use_container_width=True):
-            with st.spinner("🔄 Generating synthetic meeting transcript..."):
-                try:
-                    result = st.session_state.synthetic_generator.generate_meeting(
-                        topic_key=meeting_type,
-                        num_speakers=num_speakers,
-                        duration_minutes=duration,
-                        context=meeting_context
-                    )
-
-                    if result:
-                        st.success("✨ Synthetic meeting generated successfully!")
-                        st.session_state.current_tab = "Generate Summary"
-                        st.rerun()
-                except Exception as e:
-                    st.error("❌ Failed to generate synthetic meeting")
+        except Exception as e:
+            st.error(f"❌ Failed to generate synthetic meeting: {str(e)}")
+            st.error("Please check your IBM API credentials and try again.")
 
     # Display existing transcripts
     st.markdown("---")
